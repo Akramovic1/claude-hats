@@ -75,6 +75,24 @@ test('a rerouted request carries only the chosen token', async () => {
   expect(isInference('https://api.anthropic.com/api/oauth/usage')).toBe(false)
 })
 
+test('a token only ever goes to Anthropic\'s own API, over https', async () => {
+  for (const url of [
+    'https://gateway.example.com/v1/messages', // a custom base URL: a proxy or gateway
+    'https://api.anthropic.com.evil.example/v1/messages', // a look-alike host
+    'https://evil.example/api.anthropic.com/v1/messages',
+    'https://user@evil.example/v1/messages',
+    'http://api.anthropic.com/v1/messages', // not encrypted
+    'https://api.anthropic.com:8443/v1/messages', // another port
+    'https://api.anthropic.com/v1/messages/../../v2/other',
+    'https://api.anthropic.com/v1/messagesX',
+    'https://api.anthropic.com/v1/messages/batches',
+    'http://localhost:8080/v1/messages',
+    'not a url',
+  ]) {
+    expect(isInference(url)).toBe(false)
+  }
+})
+
 test('account ids are safe file names, and names are tidied', async () => {
   expect(isAccountId(newAccountId(NOW))).toBe(true)
   expect(isAccountId('0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d')).toBe(true)

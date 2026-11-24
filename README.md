@@ -68,7 +68,7 @@ The switch applies to every session of the app, from the next message on. If an 
 
 ## How it works
 
-Every request Claude Code sends to the model passes through this plugin's `http.fetch` hook. While another account is chosen, the hook replaces the request's `Authorization` header with that account's token. Only requests to the Messages API are touched. Sign-in, synced sessions and connectors stay on the app's own account.
+Every request Claude Code sends to the model passes through this plugin's `http.fetch` hook. While another account is chosen, the hook replaces the request's `Authorization` header with that account's token. Only requests to the Messages API on `https://api.anthropic.com` are touched: if Claude Code is pointed at another base URL (a gateway, a proxy, a cloud provider), nothing is rerouted, so a token never travels to another host. Sign-in, synced sessions and connectors stay on the app's own account.
 
 Each response carries headers saying how full the subscription's limits are (`anthropic-ratelimit-unified-5h-utilization`, `-7d-`, and `-7d_oi-` for Fable). The plugin reads them and keeps the last reading per account. An account you are not using shows its last reading, back at 0% once its reset time has passed. Fable's figure appears after the first Fable request on that account.
 
@@ -84,7 +84,7 @@ Everything is kept in `~/.claude/account-usage/`:
 ## Security
 
 - Tokens are stored as plain files with `600` permissions in a `700` folder, the same protection Claude Code gives its own credentials on Linux. Anyone who can read your home folder can read them.
-- The plugin reads a token only to put it on a request to the Messages API. It never writes one, never logs one and never sends one anywhere else.
+- The plugin reads a token only to put it on a request to the Messages API at `https://api.anthropic.com`, and to no other host. It never writes one, never logs one and never sends one anywhere else.
 - To cut an account off, remove it (its token file is emptied) and revoke the token at <https://claude.ai/settings/claude-code>.
 
 ## Limits

@@ -1,10 +1,21 @@
-// Sending a model request out as another account: which requests count, and
-// what their headers become. No I/O.
+// Sending a model request out as another account: which requests count (only
+// those to Anthropic's own API), and what their headers become. No I/O.
 
-/** A model request: the Messages API and its token counter. */
+// The one place another account's token may ever be sent.
+const API_HOST = 'api.anthropic.com'
+const MODEL_PATHS = ['/v1/messages', '/v1/messages/count_tokens']
+
+/**
+ * A model request to Anthropic's own API: the Messages API and its token
+ * counter, over https, on Anthropic's host and no other. Where Claude Code is
+ * pointed at another base URL (a gateway, a proxy, a cloud provider), nothing
+ * is rerouted: a token must never travel to a host it was not issued for.
+ */
 export function isInference(url: string): boolean {
   try {
-    return new URL(url).pathname.startsWith('/v1/messages')
+    const u = new URL(url)
+
+    return u.protocol === 'https:' && u.hostname === API_HOST && u.port === '' && MODEL_PATHS.includes(u.pathname)
   } catch {
     return false
   }
