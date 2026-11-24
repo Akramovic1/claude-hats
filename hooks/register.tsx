@@ -500,7 +500,10 @@ export const register: Register = on => {
           ? `${sel.id !== mine && canUse.includes(sel.id) ? 'Use this account  ' : ''}x`
           : undefined,
     )
-    const visible = ordered.slice(0, plan.shown)
+    // The recommended account is never one of the hidden ones: it takes the last place shown.
+    const firstShown = ordered.slice(0, plan.shown)
+    const visible =
+      nextUp && plan.shown > 1 && !firstShown.includes(nextUp) ? [...firstShown.slice(0, -1), nextUp] : firstShown
     const hiddenCount = ordered.length - visible.length
 
     return (

@@ -286,3 +286,29 @@ test('an opened card renames and removes its account; "+ Add" on the row adds on
   expect(await ui.find({ key: `remove-${A1}` })).toBeUndefined()
   await ui.unmount()
 })
+
+test('among many accounts, the one with the most room is recommended and stays on the row', async ($, on) => {
+  // Nine accounts; the least used is the last by name, and would otherwise be behind "+N more".
+  const many = {
+    accounts: Array.from({ length: 9 }, (_, i) => ({
+      id: i === 0 ? A1 : `acct-n${i}`,
+      label: `Account ${i + 1}`,
+      limits: [
+        { kind: 'seven_day', percentUsed: i === 8 ? 3 : 40 + i, resetsAt: '2026-11-28T00:00:00Z' },
+        // A nearly spent 5-hour window counts against an account even when its week is light.
+        ...(i === 1 ? [{ kind: 'five_hour', percentUsed: 97, resetsAt: '2026-11-24T14:00:00Z' }] : []),
+      ],
+      updatedAt: NOW,
+    })),
+  }
+  const tokens = Object.fromEntries(Array.from({ length: 8 }, (_, i) => [`tokens/acct-n${i + 1}`, TOKEN]))
+  engine(on, many, tokens)
+  await start($)
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  expect((await ui.find({ key: 'quick-switch' }))?.text).toBe('Use Account 9')
+  expect((await ui.find({ key: 'chip-acct-n8' }))?.text).toMatch(/3%$/)
+  expect((await ui.find({ key: `acct-${A1}` }))?.text).toBe('● Account 1 ▸')
+  expect((await ui.find({ key: 'more-accounts' }))?.text).toBe('+7 more')
+  await ui.unmount()
+})

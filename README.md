@@ -9,7 +9,7 @@ Use several Claude subscriptions in **one** Claude Code. A row above the prompt 
 ## What it does
 
 - **Usage for every account, always in view.** A row above the prompt shows each account's weekly usage. Press an account to open its 5-hour, weekly and Fable limits, with the time each one resets and a warning when it would run out before then.
-- **One-press switching.** `Use this account` sends your next message from that account. No logging out, no second window, no restart. The quick button on the row moves you to the account with the most room left.
+- **One-press switching.** `Use this account` sends your next message from that account. No logging out, no second window, no restart. The quick button on the row recommends the account with the most room left: the one whose fullest limit (5-hour, weekly or Fable) is lowest.
 - **Any number of accounts.** Add, rename and remove them right in the row. The row stays on one line however many you have.
 - **No other tool needed.** The figures come from the rate-limit headers on Claude's own responses, so nothing extra is installed and no extra request is made.
 - **A small companion.** A character on the row acts out what Claude is doing (thinking, reading, writing, running a command, looking something up, working with helpers) and gets uneasy as the account in use runs low.
