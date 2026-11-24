@@ -47,16 +47,18 @@ Needs Claude Code 2.1.325 or newer.
 The account your Claude Code is signed in to is there from the start. For each other subscription:
 
 1. Press **+ Add** on the row, type a name and press Enter. (Or: `/accounts-add Work`.)
-2. The new account's card opens and shows one line to run in a terminal, with your browser signed in to claude.ai as that account:
+2. The new account's card opens and shows one command. Run it in a terminal, with your browser signed in to claude.ai as that account:
 
    ```
-   claude setup-token && bash "<plugin folder>/bin/save-token" <account id>
+   bash "<plugin folder>/bin/save-token" <account id>
    ```
 
-   It prints a long-lived token for the account, then asks you to paste it. The paste stays hidden, and the token is saved where only you can read it. It also offers to note the account's email, which is then shown in brackets beside its name.
+   It runs `claude setup-token` for you, picks the new token up by itself (nothing to copy or paste), checks that Anthropic accepts it, and saves it where only you can read it.
 3. Back in Claude, press the account on the row, then **Use this account**.
 
 Run it in a normal terminal, not inside a Claude chat (not with `!`), so the token never ends up in a transcript.
+
+An added account shows no email by default: the token that `claude setup-token` issues is not allowed to read the account's profile. To show one beside the name, add `--email you@example.com` to the command. If the automatic pickup fails, the command asks you to paste the token instead; `--paste` goes straight to that.
 
 ## Everyday use
 

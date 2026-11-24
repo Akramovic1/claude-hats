@@ -189,7 +189,7 @@ test('accounts are added, renamed and removed', async ($, on) => {
   expect(id).toMatch(/^acct-/)
   expect(JSON.stringify(added)).toContain(`save-token\\" ${id}`)
   const pane = await $.ui.mount({ ...PANE, surface: 'desktop' })
-  expect((await pane.find({ key: `steps-${id}` }))?.text).toContain('claude setup-token')
+  expect((await pane.find({ key: `steps-${id}` }))?.text).toContain(`bin/save-token" ${id}`)
   expect(await pane.find({ key: `switch-${id}` })).toBeUndefined()
 
   // Renamed from the pane: the field opens on Rename and saves on Enter.

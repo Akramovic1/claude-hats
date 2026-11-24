@@ -1,44 +1,137 @@
 #!/usr/bin/env bash
-# Saves an account's token where the claude-hats mod reads it, without the
-# token ever appearing on screen, in your shell history or in a chat.
+# Gives an account its token, in one command:
 #
-#   claude setup-token && bin/save-token <account id>
+#   bin/save-token <account id>
 #
-# Run it with your browser signed in to claude.ai as that account. The first
-# half prints the token; this script then asks you to paste it.
+# Run it with your browser signed in to claude.ai as that account. It runs
+# `claude setup-token` for you, picks the new token up from what that prints
+# (nothing to copy), checks that Anthropic accepts it, and saves it where the
+# claude-hats plugin reads it and only you can. The account id is shown in the
+# account's card in Claude.
 #
-# The account id is shown in the Accounts pane (/accounts) next to the account.
+#   bin/save-token <account id> --paste          paste a token you already have
+#   bin/save-token <account id> --email you@x    also note its email, shown beside its name
 set -euo pipefail
 
 id="${1:-}"
 if [[ ! "$id" =~ ^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$ ]]; then
-  echo "usage: save-token <account id>   (the id shown in the Accounts pane)" >&2
+  echo "usage: save-token <account id> [--paste] [--email you@example.com]" >&2
+  echo "       the id is shown in the account's card in Claude" >&2
   exit 2
 fi
+shift
+paste=0
+email=""
+while (($#)); do
+  case "$1" in
+    --paste) paste=1 ;;
+    --email) email="${2:-}"; shift ;;
+    *) echo "save-token: unknown option $1" >&2; exit 2 ;;
+  esac
+  shift
+done
 
-dir="${HOME}/.claude/claude-hats/tokens"
-mkdir -p "$dir"
-chmod 700 "$dir"
+dir="${HOME}/.claude/claude-hats"
+umask 077
+mkdir -p "$dir/tokens"
+chmod 700 "$dir/tokens"
 
-read -rsp "Paste the token for this account (it stays hidden): " token
-echo
-if [[ "$token" != sk-ant-* ]]; then
-  echo "That does not look like a Claude token (it should start with sk-ant-). Nothing was saved." >&2
+# The last token in a terminal recording: colors and cursor codes removed, and a
+# token that the screen wrapped onto the next line joined up again.
+token_in() {
+  perl -0777 -ne '
+    s/\e\[[0-9;?]*[ -\/]*[@-~]//g; s/\e\][^\a]*(?:\a|\e\\)//g; s/\r//g;
+    my $t;
+    while (/(sk-ant-oat[0-9]+-[A-Za-z0-9_-]+(?:\n[ \t]*[A-Za-z0-9_-]+[ \t]*(?=\n))*)/g) { $t = $1 }
+    if (defined $t) { $t =~ s/\s+//g; print $t }
+  ' "$1"
+}
+
+token=""
+if ((paste == 0)); then
+  if ! command -v claude >/dev/null 2>&1; then
+    echo "The claude command is not on your PATH. Install Claude Code's terminal command, or use --paste." >&2
+    exit 1
+  fi
+  log="$(mktemp)"
+  trap 'rm -f "$log"' EXIT
+  echo "Starting claude setup-token. Approve it in the browser, signed in as this account."
+  echo
+  # Record what the command prints, with whichever recorder this machine has:
+  # `script` (always on macOS, an optional package on Linux; its options
+  # differ between the two), else Python's own.
+  if command -v script >/dev/null 2>&1; then
+    if script --version 2>/dev/null | grep -qi util-linux; then
+      script -qfec "claude setup-token" "$log" || true
+    else
+      script -q "$log" claude setup-token || true
+    fi
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 -c '
+import os, pty, sys
+with open(sys.argv[1], "wb") as log:
+    def copy(fd):
+        data = os.read(fd, 1024)
+        log.write(data)
+        log.flush()
+        return data
+    pty.spawn(["claude", "setup-token"], copy)
+' "$log" || true
+  else
+    claude setup-token || true
+  fi
+  token="$(token_in "$log" || true)"
+  rm -f "$log"
+  trap - EXIT
+  echo
+  if [[ -z "$token" ]]; then
+    echo "Could not pick the token up automatically."
+    paste=1
+  fi
+fi
+
+if ((paste == 1)); then
+  # A pasted token may be wrapped over lines: read until an empty line, and join.
+  echo "Paste the token, then press Enter on an empty line (it stays hidden):"
+  pasted=""
+  while IFS= read -rs line; do
+    [[ -z "$line" && -n "$pasted" ]] && break
+    pasted+="$line"
+  done
+  echo
+  token="$(printf '%s' "$pasted" | tr -d ' \t\r\n')"
+fi
+
+if [[ ! "$token" =~ ^sk-ant-[A-Za-z0-9_-]{20,}$ ]]; then
+  echo "That is not a Claude token (it should start with sk-ant-). Nothing was saved." >&2
   exit 1
 fi
 
-umask 077
-printf '%s\n' "$token" > "$dir/$id"
-chmod 600 "$dir/$id"
-unset token
-
-# Optional: the account's email, shown in brackets beside its name.
-read -rp "Email of this account, to show beside its name (Enter to skip): " email
-if [[ "$email" =~ ^[^[:space:]@]+@[^[:space:]@]+$ ]]; then
-  mkdir -p "${HOME}/.claude/claude-hats/emails"
-  printf '%s\n' "$email" > "${HOME}/.claude/claude-hats/emails/$id"
-elif [[ -n "$email" ]]; then
-  echo "That does not look like an email, so none was saved."
+# Ask Anthropic whether it accepts the token, before anything is saved. Only a
+# plain refusal stops here: with no network, the token is saved unchecked.
+if [[ -z "${CLAUDE_HATS_SKIP_CHECK:-}" ]] && command -v curl >/dev/null 2>&1; then
+  code="$(printf 'header = "Authorization: Bearer %s"\n' "$token" | curl -s -o /dev/null -w '%{http_code}' -m 20 -K - \
+    -H 'anthropic-version: 2023-06-01' -H 'anthropic-beta: oauth-2025-04-20' -H 'content-type: application/json' \
+    -d '{"model":"claude-haiku-4-5","messages":[{"role":"user","content":"hi"}]}' \
+    https://api.anthropic.com/v1/messages/count_tokens || true)"
+  if [[ "$code" == "401" ]]; then
+    echo "Anthropic refused that token (it is cut off, mistyped or revoked). Nothing was saved." >&2
+    echo "Run this command again to make a new one." >&2
+    exit 1
+  fi
 fi
 
-echo "Saved. In Claude, open the account in the usage row and press Use this account."
+printf '%s\n' "$token" > "$dir/tokens/$id"
+chmod 600 "$dir/tokens/$id"
+unset token pasted
+
+if [[ -n "$email" ]]; then
+  if [[ "$email" =~ ^[^[:space:]@]+@[^[:space:]@]+$ ]]; then
+    mkdir -p "$dir/emails"
+    printf '%s\n' "$email" > "$dir/emails/$id"
+  else
+    echo "That does not look like an email, so none was noted."
+  fi
+fi
+
+echo "Saved. In Claude, open the account on the usage row and press Use this account."

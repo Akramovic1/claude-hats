@@ -45,7 +45,9 @@ import {
 //   route.json      { "account": "<id>" }: the account in use, '' for this app's own
 //   tokens/<id>     that account's `claude setup-token` token, saved by
 //                   bin/save-token; this mod only ever reads it
-//   emails/<id>     the email the person gave for it there, shown beside its name
+//   emails/<id>     its email, where one was given to bin/save-token --email;
+//                   shown beside its name (a setup token may not read the
+//                   account's profile, so it cannot be looked up)
 
 const PANE = 'accounts'
 const TITLE = 'Accounts'
@@ -364,9 +366,9 @@ function findAccount(list: AccountUsage[], text: string): AccountUsage | undefin
   return list.find(a => a.label.toLowerCase() === wanted) ?? list.find(a => a.id.toLowerCase() === wanted)
 }
 
-/** The one terminal line that gives an account its token: make it, then save it (pasted hidden). */
+/** The one terminal command that gives an account its token: it makes one, checks it and saves it. */
 function tokenStep(root: string, id: string): string {
-  return `claude setup-token && bash "${root}/bin/save-token" ${id}`
+  return `bash "${root}/bin/save-token" ${id}`
 }
 
 // ------------------------------------------------------------- drawing
@@ -461,7 +463,7 @@ export const register: Register = on => {
     const id = await addAccount($, e.args)
     if (id === undefined) return { text: 'Give the account a name: /accounts-add Work' }
     return {
-      text: `Added. To finish, run this in a terminal, with your browser signed in to claude.ai as that account, and paste the token it prints when asked:\n\n  ${tokenStep($.plugin.root, id)}`,
+      text: `Added. To finish, run this in a terminal, with your browser signed in to claude.ai as that account. It sets the token up by itself:\n\n  ${tokenStep($.plugin.root, id)}`,
     }
   })
 
@@ -715,8 +717,8 @@ export const register: Register = on => {
                 {!canUse.includes(sel.id) && (
                   <Box key={`steps-${sel.id}`} flexDirection="column">
                     <Text dimColor>
-                      To finish, run this in a terminal with your browser signed in to claude.ai as this account, and
-                      paste the token it prints when asked:
+                      To finish, run this one command in a terminal, with your browser signed in to claude.ai as this
+                      account. It sets the token up by itself:
                     </Text>
                     <Text mono>{tokenStep($.plugin.root, sel.id)}</Text>
                   </Box>
@@ -903,8 +905,8 @@ export const register: Register = on => {
             ) : (
               <Box key={`steps-${a.id}`} flexDirection="column">
                 <Text dimColor>
-                  To finish, run this in a terminal with your browser signed in to claude.ai as this account, and paste
-                  the token it prints when asked:
+                  To finish, run this one command in a terminal, with your browser signed in to claude.ai as this
+                  account. It sets the token up by itself:
                 </Text>
                 <Text mono>{tokenStep($.plugin.root, a.id)}</Text>
               </Box>
