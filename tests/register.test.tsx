@@ -246,9 +246,13 @@ test('an opened card renames and removes its account; "+ Add" on the row adds on
   const config = () => JSON.parse(files.get(`${HOME}/config.json`) ?? '{"accounts":{}}').accounts as Record<string, { label: string }>
 
   const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
-  // The opened card's name is a field: typing over it and Enter renames the account.
+  // Rename turns the opened card's name into a field; Enter saves and the field goes.
   await ui.press({ key: `acct-${A2}` })
+  expect(await ui.find({ key: `name-${A2}` })).toBeUndefined()
+  await ui.press({ key: `rename-${A2}` })
+  expect((await ui.find({ key: `rename-${A2}` }))?.text).toBe('Cancel')
   await ui.input({ key: `name-${A2}`, text: 'Side' })
+  expect(await ui.find({ key: `name-${A2}` })).toBeUndefined()
   expect(config()[A2]?.label).toBe('Side')
   expect((await ui.find({ key: `acct-${A2}` }))?.text).toBe('Side ▾')
   // There is no Manage button to go through.
@@ -265,7 +269,15 @@ test('an opened card renames and removes its account; "+ Add" on the row adds on
   expect((await ui.find({ key: `steps-${id}` }))?.text).toContain(`save-token" ${id}`)
   expect(await ui.find({ key: `switch-${id}` })).toBeUndefined()
 
-  // Remove, in the card, forgets the account and closes the card.
+  // Remove asks twice: the first press only arms it, and closing the card disarms it.
+  await ui.press({ key: `remove-${id}` })
+  expect((await ui.find({ key: `remove-${id}` }))?.text).toBe('Confirm remove')
+  expect(config()[id]?.label).toBe('Work')
+  await ui.press({ key: 'close-details' })
+  await ui.press({ key: `acct-${id}` })
+  expect((await ui.find({ key: `remove-${id}` }))?.text).toBe('Remove')
+  // The second press forgets the account and closes the card.
+  await ui.press({ key: `remove-${id}` })
   await ui.press({ key: `remove-${id}` })
   expect(config()[id]).toBeUndefined()
   expect(await ui.find({ key: `acct-${id}` })).toBeUndefined()

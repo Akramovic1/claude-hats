@@ -59,8 +59,8 @@ Run it in a normal terminal, not inside a Claude chat (not with `!`), so the tok
 | See one account's limits | Press its name on the row |
 | Switch to the account with the most room | Press `Use <account>` at the right of the row |
 | Switch to a specific account | Open it, then `Use this account` |
-| Rename an account | Open it, type over its name, Enter. Or `/accounts-rename 2 = Work` |
-| Remove an account | Open it, then **Remove**. Or `/accounts-remove Work` |
+| Rename an account | Open it, **Rename**, type the name, Enter. Or `/accounts-rename 2 = Work` |
+| Remove an account | Open it, **Remove**, then **Confirm remove**. Or `/accounts-remove Work` |
 | Add an account | **+ Add** on the row |
 | See every account at once | `/accounts` |
 

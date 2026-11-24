@@ -29,9 +29,8 @@ import {
 // account-usage: several Claude subscriptions in one Claude Code.
 //
 // - A row above the prompt shows every account's weekly usage. Pressing an
-//   account opens its 5-hour, weekly and Fable windows; its name there is a
-//   field (type over it to rename), with Remove beside it. "+ Add" on the
-//   row adds an account.
+//   account opens its 5-hour, weekly and Fable windows, with Rename and
+//   Remove (asked twice) for it. "+ Add" on the row adds an account.
 // - "Use this account" sends this app's model requests out as that account:
 //   every request to the Messages API carries that account's token, from the
 //   next message on. Nothing else about the session changes.
@@ -50,8 +49,11 @@ const PANE = 'account-usage'
 const TITLE = 'Accounts'
 const REFRESH_MS = 30_000
 const OWN_LABEL = 'Main account'
-// `renaming` holds an account's id while the pane renames it, or this while the row adds one.
+// `renaming` says which small edit is open, one at a time: an account's id
+// while its name is a field, REMOVING + its id while Remove waits for a second
+// press, or ADDING while the row's field for a new account is open.
 const ADDING = '+'
+const REMOVING = 'x:'
 
 const accounts = atom({ plugin: 'account-usage', key: 'accounts' } as const, [], {
   shape: 'accounts-2',
@@ -354,9 +356,9 @@ async function setActivity($: EngineInterface, next: Activity): Promise<void> {
 
 /** Rows the opened details of one account take in the band. */
 function detailRows(a: AccountUsage): number {
-  // gaps above and below the header (its name is a field), the windows (the
-  // scene tile is three rows tall), and the padding under them
-  return 5 + Math.max(3, a.limits.length)
+  // gaps above and below the header, the windows (the scene tile is three rows
+  // tall), and the padding under them
+  return 4 + Math.max(3, a.limits.length)
 }
 
 export const register: Register = on => {
@@ -462,7 +464,10 @@ export const register: Register = on => {
     const sel = e.props.isCollapsed ? undefined : list.find(a => a.id === open)
     const own = await ownAccount($)
     // The field for a new account's name, opened by "+ Add" on the row.
-    const isAdding = !e.props.isCollapsed && (await read($, renaming)) === ADDING
+    const edit = e.props.isCollapsed ? '' : await read($, renaming)
+    const isAdding = edit === ADDING
+    const isRenaming = sel !== undefined && edit === sel.id
+    const isConfirming = sel !== undefined && edit === REMOVING + sel.id
     // Too little room to open here: the pane holds the details instead.
     const fits = sel !== undefined && 1 + detailRows(sel) + (isAdding ? 2 : 0) <= e.props.maxRows
     // The account in use comes first.
@@ -521,6 +526,7 @@ export const register: Register = on => {
                   label={`${a.id === mine ? '● ' : ''}${shortLabel(a.label)} ${a.id === open ? '▾' : '▸'}`}
                   onPress={async () => {
                     const willOpen = (await read($, expanded)) !== a.id
+                    await update($, renaming, () => '')
                     await update($, expanded, () => (willOpen ? a.id : ''))
                     if (willOpen && 1 + detailRows(a) > e.props.maxRows) {
                       await $.ui.open({ id: PANE, title: TITLE, focus: true })
@@ -582,6 +588,7 @@ export const register: Register = on => {
                 dimColor
                 label="✕"
                 onPress={async () => {
+                  await update($, renaming, () => '')
                   await update($, expanded, () => '')
                 }}
               />
@@ -599,18 +606,23 @@ export const register: Register = on => {
         </Box>
         {sel && fits && (
           <Box key={`details-${sel.id}`} flexDirection="column" marginTop={1} gap={1}>
+            {/* One calm line: the name leads, its state follows, and the two edits wait at the far end. */}
             <Box flexDirection="row" alignItems="center" justifyContent="space-between">
               <Box flexDirection="row" alignItems="center" gap={1}>
-                {/* The name is its own rename field: type over it and press Enter. */}
-                <Box width={22} flexShrink={0} flexDirection="column">
-                  <Input
-                    key={`name-${sel.id}`}
-                    value={sel.label}
-                    placeholder="Account name"
-                    submitLabel="rename"
-                    onSubmit={value => renameAccount($, sel.id, value)}
-                  />
-                </Box>
+                {isRenaming ? (
+                  <Box width={22} flexShrink={0} flexDirection="column">
+                    <Input
+                      key={`name-${sel.id}`}
+                      value={sel.label}
+                      placeholder="Account name"
+                      submitLabel="save"
+                      autoFocus
+                      onSubmit={value => renameAccount($, sel.id, value)}
+                    />
+                  </Box>
+                ) : (
+                  <Text weight="semibold">{sel.label}</Text>
+                )}
                 {sel.id === mine && (
                   <Text size="footnote" color="success">
                     In use
@@ -620,18 +632,35 @@ export const register: Register = on => {
                   {canUse.includes(sel.id) ? agoText(sel.updatedAt, t) : 'needs a token'}
                 </Text>
               </Box>
-              {sel.id !== own && (
+              <Box flexDirection="row" alignItems="center" gap={2} flexShrink={0}>
                 <Button
-                  key={`remove-${sel.id}`}
+                  key={`rename-${sel.id}`}
                   plain
                   dimColor
-                  label="Remove"
-                  onPress={async () => {
-                    await update($, expanded, () => '')
-                    await removeAccount($, sel.id)
-                  }}
+                  label={isRenaming ? 'Cancel' : 'Rename'}
+                  onPress={() => update($, renaming, value => (value === sel.id ? '' : sel.id))}
                 />
-              )}
+                {sel.id !== own &&
+                  (isConfirming ? (
+                    <Button
+                      key={`remove-${sel.id}`}
+                      label="Confirm remove"
+                      onPress={async () => {
+                        await update($, renaming, () => '')
+                        await update($, expanded, () => '')
+                        await removeAccount($, sel.id)
+                      }}
+                    />
+                  ) : (
+                    <Button
+                      key={`remove-${sel.id}`}
+                      plain
+                      dimColor
+                      label="Remove"
+                      onPress={() => update($, renaming, () => REMOVING + sel.id)}
+                    />
+                  ))}
+              </Box>
             </Box>
             <Box flexDirection="row" alignItems="center" gap={2}>
               {Svg && (
@@ -756,9 +785,25 @@ export const register: Register = on => {
                   label="Rename"
                   onPress={() => update($, renaming, id => (id === a.id ? '' : a.id))}
                 />
-                {a.id !== own && (
-                  <Button key={`remove-${a.id}`} plain dimColor label="Remove" onPress={() => removeAccount($, a.id)} />
-                )}
+                {a.id !== own &&
+                  (editing === REMOVING + a.id ? (
+                    <Button
+                      key={`remove-${a.id}`}
+                      label="Confirm remove"
+                      onPress={async () => {
+                        await update($, renaming, () => '')
+                        await removeAccount($, a.id)
+                      }}
+                    />
+                  ) : (
+                    <Button
+                      key={`remove-${a.id}`}
+                      plain
+                      dimColor
+                      label="Remove"
+                      onPress={() => update($, renaming, () => REMOVING + a.id)}
+                    />
+                  ))}
               </Box>
             </Box>
             {editing === a.id && (
