@@ -2,6 +2,10 @@
 
 **One Claude, many hats.** Use several Claude subscriptions in one Claude Code. Each account is a hat: a row above the prompt shows how much of each one's limits is used, and one press changes which hat your requests go out under. It is still one app, one `~/.claude` folder, the same skills, settings and sessions. Only the account behind each request changes.
 
+[![A 30-second tour of claude-hats](docs/promo.gif)](docs/promo.mp4)
+
+*A 30-second tour. [Watch it with sound](docs/promo.mp4).*
+
 ![The usage row: closed, with an account opened, and with many accounts](docs/row.png)
 
 *An illustration drawn with the plugin's own graphics.*
