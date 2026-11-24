@@ -137,6 +137,8 @@ test('the drawings hold no script and stop for reduced motion', async () => {
   // 1% still shows a sliver; 95% turns red and pulses.
   expect(barSvg(1, 180)).toContain('<rect class="f" width="4"')
   expect(barSvg(95, 180)).toMatch(/pulse 1\.4s[^]*fill="#e5604c"/)
+  // A meter never animates in: the row redraws often, and it would flicker.
+  expect(barSvg(50, 180)).not.toMatch(/grow|scaleX/)
   for (const svg of [
     barSvg(50, 56),
     sceneSvg({ activity: 'idle', mood: 'awake' }),

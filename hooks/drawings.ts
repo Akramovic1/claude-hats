@@ -34,15 +34,18 @@ const CLAUDE = '#D97757'
 const INK = '#1b1a19'
 const STILL = '@media (prefers-reduced-motion:reduce){*{animation:none!important}}'
 
-/** A thin meter: the fill grows in when drawn, and pulses once it is nearly spent. */
+/**
+ * A thin meter. It is still: the row redraws on every tool call, and a meter
+ * that animated in would restart each time and flicker. Only a nearly spent
+ * one moves, with a slow pulse.
+ */
 export function barSvg(percent: number, width: number): string {
   const p = Math.max(0, Math.min(100, percent))
   const fill = p === 0 ? 0 : Math.max(4, Math.round((p / 100) * width))
   const tone = toneOf(p)
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="6" viewBox="0 0 ${width} 6">` +
-    `<style>.f{transform-box:fill-box;transform-origin:left center;animation:grow .7s cubic-bezier(.16,1,.3,1) both${tone === 'alert' ? ',pulse 1.4s ease-in-out .7s infinite' : ''}}` +
-    `@keyframes grow{from{transform:scaleX(0)}}@keyframes pulse{50%{opacity:.55}}${STILL}</style>` +
+    `<style>${tone === 'alert' ? '.f{animation:pulse 1.4s ease-in-out infinite}@keyframes pulse{50%{opacity:.55}}' : ''}${STILL}</style>` +
     `<rect width="${width}" height="6" rx="3" fill="#808080" fill-opacity=".26"/>` +
     `<rect class="f" width="${fill}" height="6" rx="3" fill="${FILL[tone]}"/></svg>`
   )

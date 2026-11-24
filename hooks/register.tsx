@@ -26,7 +26,8 @@ import {
   weekly,
 } from './usage'
 
-// account-usage: several Claude subscriptions in one Claude Code.
+// claude-hats: one Claude, many hats. Several Claude subscriptions in one
+// Claude Code, each account a hat it can put on.
 //
 // - A row above the prompt shows every account's weekly usage. Pressing an
 //   account opens its 5-hour, weekly and Fable windows, with Rename and
@@ -38,14 +39,14 @@ import {
 //   so no other tool and no extra request is needed.
 // - /accounts opens a pane with every account at once (and the same fields).
 //
-// Everything is kept under ~/.claude/account-usage/:
+// Everything is kept under ~/.claude/claude-hats/:
 //   accounts.json   every account's last reading (written here)
 //   config.json     { "accounts": { "<id>": { "label": "Work" } } }
 //   route.json      { "account": "<id>" }: the account in use, '' for this app's own
 //   tokens/<id>     that account's `claude setup-token` token, saved by
 //                   bin/save-token; this mod only ever reads it
 
-const PANE = 'account-usage'
+const PANE = 'accounts'
 const TITLE = 'Accounts'
 const REFRESH_MS = 30_000
 const OWN_LABEL = 'Main account'
@@ -55,15 +56,15 @@ const OWN_LABEL = 'Main account'
 const ADDING = '+'
 const REMOVING = 'x:'
 
-const accounts = atom({ plugin: 'account-usage', key: 'accounts' } as const, [], {
+const accounts = atom({ plugin: 'hats', key: 'accounts' } as const, [], {
   shape: 'accounts-2',
 })
-const me = atom({ plugin: 'account-usage', key: 'me' } as const, '')
-const now = atom({ plugin: 'account-usage', key: 'now' } as const, 0)
-const expanded = atom({ plugin: 'account-usage', key: 'expanded' } as const, '')
-const activity = atom({ plugin: 'account-usage', key: 'activity' } as const, 'idle')
-const usable = atom({ plugin: 'account-usage', key: 'usable' } as const, [])
-const renaming = atom({ plugin: 'account-usage', key: 'renaming' } as const, '')
+const me = atom({ plugin: 'hats', key: 'me' } as const, '')
+const now = atom({ plugin: 'hats', key: 'now' } as const, 0)
+const expanded = atom({ plugin: 'hats', key: 'expanded' } as const, '')
+const activity = atom({ plugin: 'hats', key: 'activity' } as const, 'idle')
+const usable = atom({ plugin: 'hats', key: 'usable' } as const, [])
+const renaming = atom({ plugin: 'hats', key: 'renaming' } as const, '')
 
 type Config = { accounts: Record<string, { label?: string }> }
 
@@ -72,7 +73,7 @@ type Config = { accounts: Record<string, { label?: string }> }
 async function dir($: EngineInterface): Promise<string> {
   const home = (await $.env.get('HOME')) ?? (await $.env.get('USERPROFILE')) ?? ''
 
-  return `${home}/.claude/account-usage`
+  return `${home}/.claude/claude-hats`
 }
 
 async function readJson($: EngineInterface, path: string): Promise<unknown> {

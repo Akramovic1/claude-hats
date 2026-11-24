@@ -1,11 +1,20 @@
 {
-  "name": "account-usage",
-  "version": "0.2.0",
-  "description": "Use several Claude subscriptions in one Claude Code: see every account's 5-hour, weekly and Fable usage above the prompt, and switch which account your requests go out as with one press",
-  "author": { "name": "Akramovic1", "url": "https://github.com/Akramovic1" },
-  "homepage": "https://github.com/Akramovic1/claude-account-usage",
-  "repository": "https://github.com/Akramovic1/claude-account-usage",
+  "name": "hats",
+  "version": "0.3.0",
+  "description": "One Claude, many hats: use several Claude subscriptions in one Claude Code. See every account's 5-hour, weekly and Fable usage above the prompt, and switch which account your requests go out as with one press",
+  "author": {
+    "name": "Akramovic1",
+    "url": "https://github.com/Akramovic1"
+  },
+  "homepage": "https://github.com/Akramovic1/claude-hats",
+  "repository": "https://github.com/Akramovic1/claude-hats",
   "license": "MIT",
-  "keywords": ["accounts", "usage", "rate-limits", "multi-account", "statusline"],
+  "keywords": [
+    "accounts",
+    "usage",
+    "rate-limits",
+    "multi-account",
+    "switch"
+  ],
   "types": "./types/index.d.ts"
 }

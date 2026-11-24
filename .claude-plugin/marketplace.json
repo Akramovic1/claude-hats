@@ -1,14 +1,14 @@
 {
-  "name": "claude-account-usage",
-  "description": "account-usage: several Claude subscriptions in one Claude Code",
+  "name": "claude-hats",
+  "description": "claude-hats: one Claude, many hats. Several Claude subscriptions in one Claude Code",
   "owner": {
     "name": "Akramovic1"
   },
   "plugins": [
     {
-      "name": "account-usage",
+      "name": "hats",
       "source": "./",
-      "description": "Several Claude subscriptions in one Claude Code: usage for every account above the prompt, and one-press switching"
+      "description": "One Claude, many hats: usage for every account above the prompt, and one-press switching"
     }
   ]
 }

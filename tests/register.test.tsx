@@ -4,7 +4,7 @@ const A1 = '11111111-1111-1111-1111-111111111111' // this app's own account
 const A2 = '22222222-2222-2222-2222-222222222222'
 const A3 = 'acct-third'
 const NOW = Date.parse('2026-11-24T12:00:00Z')
-const HOME = '/home/test/.claude/account-usage'
+const HOME = '/home/test/.claude/claude-hats'
 const TOKEN = 'sk-ant-oat01-test\n'
 
 const TWO = {
@@ -29,7 +29,7 @@ const TWO = {
 }
 
 const BAND = {
-  plugin: 'account-usage',
+  plugin: 'hats',
   component: 'AbovePrompt',
   props: {
     hasSurvey: false,
@@ -43,9 +43,9 @@ const BAND = {
 } as const
 
 const PANE = {
-  plugin: 'account-usage',
+  plugin: 'hats',
   component: 'Pane',
-  requestId: 'account-usage',
+  requestId: 'accounts',
   props: {
     title: 'Accounts',
     isFocused: false,

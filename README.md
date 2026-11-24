@@ -1,6 +1,6 @@
-# account-usage
+# claude-hats
 
-Use several Claude subscriptions in **one** Claude Code. A row above the prompt shows how much of each account's limits is used, and one press changes which account your requests go out as. It is still one app, one `~/.claude` folder, the same skills, settings and sessions. Only the account behind each request changes.
+**One Claude, many hats.** Use several Claude subscriptions in one Claude Code. Each account is a hat: a row above the prompt shows how much of each one's limits is used, and one press changes which hat your requests go out under. It is still one app, one `~/.claude` folder, the same skills, settings and sessions. Only the account behind each request changes.
 
 ![The usage row: closed, with an account opened, and with many accounts](docs/row.png)
 
@@ -21,16 +21,18 @@ Use several Claude subscriptions in **one** Claude Code. A row above the prompt 
 In a terminal session of Claude Code, at the prompt:
 
 ```
-/plugin install account-usage --marketplace Akramovic1/claude-account-usage
+/plugin install hats --marketplace Akramovic1/claude-hats
 ```
 
 Or from a shell:
 
 ```
-claude plugin install account-usage --marketplace Akramovic1/claude-account-usage
+claude plugin install hats --marketplace Akramovic1/claude-hats
 ```
 
-In the desktop app, where `/plugin` does not run: click **+** next to the prompt box, then **Plugins**, **Add marketplace** with `Akramovic1/claude-account-usage`, then **Add plugin**.
+In the desktop app, where `/plugin` does not run: click **+** next to the prompt box, then **Plugins**, **Add marketplace** with `Akramovic1/claude-hats`, then **Add plugin** (it is listed as `hats`).
+
+The plugin inside this repository is named `hats`, because Claude Code keeps plugin names that start with `claude-` for Anthropic's own.
 
 It is written to run on macOS, Linux and Windows, and has been tested on Linux so far. Adding an account uses a small bash script, so on Windows run that step in Git Bash or WSL.
 
@@ -72,7 +74,7 @@ Every request Claude Code sends to the model passes through this plugin's `http.
 
 Each response carries headers saying how full the subscription's limits are (`anthropic-ratelimit-unified-5h-utilization`, `-7d-`, and `-7d_oi-` for Fable). The plugin reads them and keeps the last reading per account. An account you are not using shows its last reading, back at 0% once its reset time has passed. Fable's figure appears after the first Fable request on that account.
 
-Everything is kept in `~/.claude/account-usage/`:
+Everything is kept in `~/.claude/claude-hats/`:
 
 | File | Holds |
 | --- | --- |
@@ -101,13 +103,13 @@ This is for subscriptions that are **yours**. Each account uses its own token, i
 ## Development
 
 ```
-git clone https://github.com/Akramovic1/claude-account-usage
-claude --plugin-dir ./claude-account-usage      # runs it from the folder, reloading on save
-claude plugin validate ./claude-account-usage
-claude plugin test ./claude-account-usage
+git clone https://github.com/Akramovic1/claude-hats
+claude --plugin-dir ./claude-hats      # runs it from the folder, reloading on save
+claude plugin validate ./claude-hats
+claude plugin test ./claude-hats
 ```
 
-For the desktop app, name the folder in `~/.claude/settings.json` instead: `"env": { "CLAUDE_CODE_PLUGIN_DIRS": "/path/to/claude-account-usage" }`.
+For the desktop app, name the folder in `~/.claude/settings.json` instead: `"env": { "CLAUDE_CODE_PLUGIN_DIRS": "/path/to/claude-hats" }`.
 
 - `hooks/register.tsx`: state, files, the hooks and what is drawn
 - `hooks/usage.ts`: the limit arithmetic and the header reading

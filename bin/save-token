@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Saves an account's token where the account-usage mod reads it, without the
+# Saves an account's token where the claude-hats mod reads it, without the
 # token ever appearing on screen, in your shell history or in a chat.
 #
 #   claude setup-token && bin/save-token <account id>
@@ -16,7 +16,7 @@ if [[ ! "$id" =~ ^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$ ]]; then
   exit 2
 fi
 
-dir="${HOME}/.claude/account-usage/tokens"
+dir="${HOME}/.claude/claude-hats/tokens"
 mkdir -p "$dir"
 chmod 700 "$dir"
 

@@ -33,7 +33,7 @@ export type AccountUsage = {
 
 declare module 'claude-code' {
   interface PluginState {
-    'account-usage': {
+    hats: {
       accounts: Shaped<AccountUsage[]>
       /** The account requests go out as. */
       me: string
