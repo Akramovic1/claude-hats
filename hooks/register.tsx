@@ -52,6 +52,8 @@ import {
 const PANE = 'accounts'
 const TITLE = 'Accounts'
 const REFRESH_MS = 30_000
+// While an account waits for its token, its file is looked for this often.
+const PENDING_MS = 2_500
 const OWN_LABEL = 'Main account'
 // `renaming` says which small edit is open, one at a time: an account's id
 // while its name is a field, REMOVING + its id while Remove waits for a second
@@ -310,6 +312,28 @@ async function refresh($: EngineInterface): Promise<void> {
   await update($, now, () => t)
 }
 
+/**
+ * Notices a token the moment bin/save-token writes it: while any account is
+ * waiting for one, its file is looked for every few seconds, so the row shows
+ * the account as ready at once instead of at the next slow refresh. With no
+ * account waiting it reads two values and returns.
+ */
+async function watchPending($: EngineInterface): Promise<void> {
+  try {
+    const canUse = await read($, usable)
+    const waiting = (await read($, accounts)).filter(a => !canUse.includes(a.id))
+    for (const a of waiting) {
+      if ((await tokenFor($, a.id)) === undefined) continue
+      await refresh($)
+      $.ui.toast(`${a.label} is ready. Open it and press Use this account.`)
+
+      return
+    }
+  } catch {
+    // the slow refresh still catches it
+  }
+}
+
 // ------------------------------------------------------------- accounts
 
 /** Adds an account by name; its token is saved separately, by bin/save-token. */
@@ -425,6 +449,7 @@ export const register: Register = on => {
     await $.command.register({ name: 'accounts-remove', description: 'Remove an account: /accounts-remove Work' })
     await refresh($)
     $.clock.every(REFRESH_MS, () => void refresh($))
+    $.clock.every(PENDING_MS, () => void watchPending($))
 
     return started
   })

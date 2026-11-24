@@ -54,7 +54,7 @@ The account your Claude Code is signed in to is there from the start. For each o
    ```
 
    It runs `claude setup-token` for you, picks the new token up by itself (nothing to copy or paste), checks that Anthropic accepts it, and saves it where only you can read it.
-3. Back in Claude, press the account on the row, then **Use this account**.
+3. Back in Claude, the account shows as ready within a few seconds. Press it on the row, then **Use this account**.
 
 Run it in a normal terminal, not inside a Claude chat (not with `!`), so the token never ends up in a transcript.
 
