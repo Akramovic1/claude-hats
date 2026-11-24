@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Saves an account's token where the account-usage mod reads it, without the
+# token ever appearing on screen, in your shell history or in a chat.
+#
+#   claude setup-token && bin/save-token <account id>
+#
+# Run it with your browser signed in to claude.ai as that account. The first
+# half prints the token; this script then asks you to paste it.
+#
+# The account id is shown in the Accounts pane (/accounts) next to the account.
+set -euo pipefail
+
+id="${1:-}"
+if [[ ! "$id" =~ ^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$ ]]; then
+  echo "usage: save-token <account id>   (the id shown in the Accounts pane)" >&2
+  exit 2
+fi
+
+dir="${HOME}/.claude/account-usage/tokens"
+mkdir -p "$dir"
+chmod 700 "$dir"
+
+read -rsp "Paste the token for this account (it stays hidden): " token
+echo
+if [[ "$token" != sk-ant-* ]]; then
+  echo "That does not look like a Claude token (it should start with sk-ant-). Nothing was saved." >&2
+  exit 1
+fi
+
+umask 077
+printf '%s\n' "$token" > "$dir/$id"
+chmod 600 "$dir/$id"
+unset token
+echo "Saved. In Claude, open the account in the usage row and press Use this account."

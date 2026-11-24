@@ -1,0 +1,11 @@
+{
+  "name": "account-usage",
+  "version": "0.2.0",
+  "description": "Use several Claude subscriptions in one Claude Code: see every account's 5-hour, weekly and Fable usage above the prompt, and switch which account your requests go out as with one press",
+  "author": { "name": "Akramovic1", "url": "https://github.com/Akramovic1" },
+  "homepage": "https://github.com/Akramovic1/claude-account-usage",
+  "repository": "https://github.com/Akramovic1/claude-account-usage",
+  "license": "MIT",
+  "keywords": ["accounts", "usage", "rate-limits", "multi-account", "statusline"],
+  "types": "./types/index.d.ts"
+}
