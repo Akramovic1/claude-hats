@@ -204,17 +204,19 @@ export function miniCharacterSvg(pose: Pose): string {
   )
 }
 
-const SCENE: Record<Mood, { a: string; b: string; glow: number; speed: number }> = {
-  awake: { a: CLAUDE, b: '#f0b392', glow: 0.5, speed: 1 },
-  asleep: { a: '#5b6b86', b: '#3d4a63', glow: 0.4, speed: 1.8 },
-  worried: { a: '#d9a441', b: CLAUDE, glow: 0.55, speed: 0.7 },
-  alarmed: { a: '#e5604c', b: '#d9a441', glow: 0.65, speed: 0.4 },
+const SCENE: Record<Mood, { a: string; b: string; glow: number }> = {
+  awake: { a: CLAUDE, b: '#f0b392', glow: 0.5 },
+  asleep: { a: '#5b6b86', b: '#3d4a63', glow: 0.4 },
+  worried: { a: '#d9a441', b: CLAUDE, glow: 0.55 },
+  alarmed: { a: '#e5604c', b: '#d9a441', glow: 0.65 },
 }
 
 /**
- * A small tile: the character over a slowly drifting glow. On the account in
- * use it acts out what Claude is doing; on the other it sleeps; and it grows
- * uneasy as the limits run down.
+ * A small tile: the character over a soft glow. On the account in use it acts
+ * out what Claude is doing; on the other it sleeps; and it grows uneasy as the
+ * limits run down. The glow is still: a drawing is loaded afresh each time the
+ * row redraws, and a slow drift would visibly jump back to its start. Only the
+ * character moves, in short loops that restart unnoticed.
  */
 export function sceneSvg(pose: Pose): string {
   const c = SCENE[pose.mood]
@@ -222,12 +224,10 @@ export function sceneSvg(pose: Pose): string {
     `<svg xmlns="http://www.w3.org/2000/svg" width="104" height="60" viewBox="0 0 104 60">` +
     `<defs><clipPath id="c"><rect width="104" height="60" rx="10"/></clipPath><filter id="b" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="11"/></filter></defs>` +
     `<style>${CREATURE_CSS}` +
-    `.g1{animation:g1 ${11 * c.speed}s ease-in-out infinite alternate}@keyframes g1{to{transform:translate(30px,10px)}}` +
-    `.g2{animation:g2 ${14 * c.speed}s ease-in-out infinite alternate}@keyframes g2{to{transform:translate(-34px,-8px)}}` +
     `${STILL}</style>` +
     `<g clip-path="url(#c)"><rect width="104" height="60" fill="${INK}"/>` +
-    `<circle class="g1" cx="22" cy="14" r="24" fill="${c.a}" fill-opacity="${c.glow}" filter="url(#b)"/>` +
-    `<circle class="g2" cx="88" cy="50" r="22" fill="${c.b}" fill-opacity="${c.glow * 0.8}" filter="url(#b)"/>` +
+    `<circle cx="22" cy="14" r="24" fill="${c.a}" fill-opacity="${c.glow}" filter="url(#b)"/>` +
+    `<circle cx="88" cy="50" r="22" fill="${c.b}" fill-opacity="${c.glow * 0.8}" filter="url(#b)"/>` +
     `<g transform="translate(30 13) scale(.68)">${creature(pose)}</g></g></svg>`
   )
 }

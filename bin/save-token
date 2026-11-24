@@ -31,4 +31,14 @@ umask 077
 printf '%s\n' "$token" > "$dir/$id"
 chmod 600 "$dir/$id"
 unset token
+
+# Optional: the account's email, shown in brackets beside its name.
+read -rp "Email of this account, to show beside its name (Enter to skip): " email
+if [[ "$email" =~ ^[^[:space:]@]+@[^[:space:]@]+$ ]]; then
+  mkdir -p "${HOME}/.claude/claude-hats/emails"
+  printf '%s\n' "$email" > "${HOME}/.claude/claude-hats/emails/$id"
+elif [[ -n "$email" ]]; then
+  echo "That does not look like an email, so none was saved."
+fi
+
 echo "Saved. In Claude, open the account in the usage row and press Use this account."

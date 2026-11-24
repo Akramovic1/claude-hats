@@ -312,3 +312,19 @@ test('among many accounts, the one with the most room is recommended and stays o
   expect((await ui.find({ key: 'more-accounts' }))?.text).toBe('+7 more')
   await ui.unmount()
 })
+
+test('an opened card shows the account\'s email in brackets beside its name', async ($, on) => {
+  engine(on, TWO, { [`tokens/${A2}`]: TOKEN, [`emails/${A2}`]: 'two@example.com\n' })
+  await start($)
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  // The app's own account: its email comes from the app.
+  await ui.press({ key: `acct-${A1}` })
+  expect((await ui.find({ key: `details-${A1}` }))?.text).toContain('Account 1(one@example.com)')
+  // Another account: the email given when its token was saved.
+  await ui.press({ key: `acct-${A2}` })
+  expect((await ui.find({ key: `details-${A2}` }))?.text).toContain('Account 2(two@example.com)')
+  // The row itself stays short: names only.
+  expect((await ui.find({ key: `acct-${A2}` }))?.text).toBe('Account 2 ▾')
+  await ui.unmount()
+})

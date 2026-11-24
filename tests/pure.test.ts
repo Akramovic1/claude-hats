@@ -139,6 +139,8 @@ test('the drawings hold no script and stop for reduced motion', async () => {
   expect(barSvg(95, 180)).toMatch(/pulse 1\.4s[^]*fill="#e5604c"/)
   // A meter never animates in: the row redraws often, and it would flicker.
   expect(barSvg(50, 180)).not.toMatch(/grow|scaleX/)
+  // The tile's glow is still: only the character moves.
+  expect(sceneSvg({ activity: 'idle', mood: 'awake' })).not.toMatch(/class="g1"|@keyframes g1/)
   for (const svg of [
     barSvg(50, 56),
     sceneSvg({ activity: 'idle', mood: 'awake' }),

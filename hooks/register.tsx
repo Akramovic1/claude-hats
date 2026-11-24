@@ -45,6 +45,7 @@ import {
 //   route.json      { "account": "<id>" }: the account in use, '' for this app's own
 //   tokens/<id>     that account's `claude setup-token` token, saved by
 //                   bin/save-token; this mod only ever reads it
+//   emails/<id>     the email the person gave for it there, shown beside its name
 
 const PANE = 'accounts'
 const TITLE = 'Accounts'
@@ -162,6 +163,18 @@ async function currentRoute($: EngineInterface): Promise<Route> {
   return route
 }
 
+/** The email a person gave for an account when saving its token; none when there is no such file. */
+async function emailFor($: EngineInterface, id: string): Promise<string | undefined> {
+  if (!isAccountId(id)) return undefined
+  try {
+    const email = String(await $.fs.read(`${await dir($)}/emails/${id}`)).trim()
+
+    return /^[^\s@]{1,64}@[^\s@]{1,190}$/.test(email) ? email : undefined
+  } catch {
+    return undefined
+  }
+}
+
 async function saveRoute($: EngineInterface, account: string): Promise<void> {
   await $.fs.write(`${await dir($)}/route.json`, `${JSON.stringify({ account })}\n`)
   cachedRoute = undefined
@@ -261,7 +274,14 @@ async function afterResponse(
 
 /** Reads the shared files into this session's state, and moves the countdowns on. */
 async function refresh($: EngineInterface): Promise<void> {
-  const [list, config, t, own] = await Promise.all([loadAccounts($), loadConfig($), $.clock.now(), ownAccount($)])
+  const [list, config, t, own, envId, envEmail] = await Promise.all([
+    loadAccounts($),
+    loadConfig($),
+    $.clock.now(),
+    ownAccount($),
+    $.env.get('CLAUDE_CODE_ACCOUNT_UUID'),
+    $.env.get('CLAUDE_CODE_USER_EMAIL'),
+  ])
 
   // The names are the config's; an account named there with no reading yet still gets a row.
   const named = list.map(a => ({ ...a, label: config.accounts[a.id]?.label ?? a.label }))
@@ -269,7 +289,12 @@ async function refresh($: EngineInterface): Promise<void> {
   const unread: AccountUsage[] = Object.entries(config.accounts)
     .filter(([id]) => !known.has(id))
     .map(([id, c]) => ({ id, label: c.label ?? id, limits: [], updatedAt: 0 }))
-  const next = sortAccounts([...named, ...unread])
+  const next: AccountUsage[] = []
+  for (const a of sortAccounts([...named, ...unread])) {
+    // Its email: the app's own from the environment, another's as given with its token.
+    const email = a.id === envId && envEmail ? envEmail : (a.email ?? (await emailFor($, a.id)))
+    next.push(email === a.email ? a : { ...a, email })
+  }
 
   const canUse: string[] = []
   for (const a of next) {
@@ -346,10 +371,22 @@ function tokenStep(root: string, id: string): string {
 
 // ------------------------------------------------------------- drawing
 
-/** Sets what the character acts out. A drawing detail: it must never fail a turn or a tool call. */
-async function setActivity($: EngineInterface, next: Activity): Promise<void> {
+let lastPoseAt = 0
+
+/**
+ * Sets what the character acts out. A drawing detail: it must never fail a
+ * turn or a tool call. Every change redraws the row, so a tool's pose is
+ * dropped when the last change was a moment ago; a turn's start and end
+ * (`isFirm`) always show.
+ */
+async function setActivity($: EngineInterface, next: Activity, isFirm = false): Promise<void> {
   try {
-    if ((await read($, activity)) !== next) await update($, activity, () => next)
+    const t = await $.clock.now()
+    if (!isFirm && t - lastPoseAt < 2500) return
+    if ((await read($, activity)) !== next) {
+      lastPoseAt = t
+      await update($, activity, () => next)
+    }
   } catch {
     // nothing to do: the pose just stays as it was
   }
@@ -391,27 +428,23 @@ export const register: Register = on => {
   })
 
   on('prompt.submit', async ($, e, next) => {
-    await setActivity($, 'thinking')
+    await setActivity($, 'thinking', true)
 
     return next(e)
   })
 
   on('tool.call', async ($, e, next) => {
-    const doing = activityOf(e.tool)
-    await setActivity($, doing)
-    try {
-      return await next(e)
-    } finally {
-      // Back to thinking, unless a later call already changed the pose.
-      if ((await read($, activity).catch(() => '')) === doing) await setActivity($, 'thinking')
-    }
+    // The pose stays until the next tool or the turn's end: no second redraw when the call returns.
+    await setActivity($, activityOf(e.tool))
+
+    return next(e)
   })
 
   on('turn.complete', async ($, e, next) => {
     const out = await next(e)
-    await setActivity($, 'done')
+    await setActivity($, 'done', true)
     $.clock.after(6000, () => {
-      void read($, activity).then(pose => (pose === 'done' ? setActivity($, 'idle') : undefined))
+      void read($, activity).then(pose => (pose === 'done' ? setActivity($, 'idle', true) : undefined))
     })
 
     return out
@@ -627,6 +660,11 @@ export const register: Register = on => {
                 ) : (
                   <Text weight="semibold">{sel.label}</Text>
                 )}
+                {sel.email && !isRenaming && (
+                  <Text dimColor size="footnote" wrap="truncate">
+                    ({sel.email})
+                  </Text>
+                )}
                 {sel.id === mine && (
                   <Text size="footnote" color="success">
                     In use
@@ -668,7 +706,7 @@ export const register: Register = on => {
             </Box>
             <Box flexDirection="row" alignItems="center" gap={2}>
               {Svg && (
-                <Svg source={sceneSvg(poseFor(sel))} alt={poseAlt(poseFor(sel))} width={104} height={60} isInteractive />
+                <Svg source={sceneSvg(poseFor(sel))} alt={poseAlt(poseFor(sel))} width={104} height={60} />
               )}
               <Box flexDirection="column" flexGrow={1}>
                 {sel.limits.length === 0 && canUse.includes(sel.id) && (
@@ -823,7 +861,7 @@ export const register: Register = on => {
             {canUse.includes(a.id) ? (
               <Box flexDirection="row" alignItems="center" gap={2}>
                 {Svg && (
-                  <Svg source={sceneSvg(poseFor(a))} alt={poseAlt(poseFor(a))} width={104} height={60} isInteractive />
+                  <Svg source={sceneSvg(poseFor(a))} alt={poseAlt(poseFor(a))} width={104} height={60} />
                 )}
                 <Box flexDirection="column" flexGrow={1}>
                   {a.limits.length === 0 && <Text dimColor>No reading yet for this account.</Text>}

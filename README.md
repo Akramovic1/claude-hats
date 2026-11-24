@@ -49,7 +49,7 @@ The account your Claude Code is signed in to is there from the start. For each o
    claude setup-token && bash "<plugin folder>/bin/save-token" <account id>
    ```
 
-   It prints a long-lived token for the account, then asks you to paste it. The paste stays hidden, and the token is saved where only you can read it.
+   It prints a long-lived token for the account, then asks you to paste it. The paste stays hidden, and the token is saved where only you can read it. It also offers to note the account's email, which is then shown in brackets beside its name.
 3. Back in Claude, press the account on the row, then **Use this account**.
 
 Run it in a normal terminal, not inside a Claude chat (not with `!`), so the token never ends up in a transcript.
@@ -82,6 +82,7 @@ Everything is kept in `~/.claude/claude-hats/`:
 | `config.json` | The accounts' names |
 | `route.json` | Which account is in use |
 | `tokens/<account id>` | That account's token, readable only by you |
+| `emails/<account id>` | The email you gave for it, if any |
 
 ## Security
 
@@ -91,6 +92,7 @@ Everything is kept in `~/.claude/claude-hats/`:
 
 ## Limits
 
+- The row appears once a session has started, after your first message. The app's start screen has no session yet.
 - An idle account's figures are from its last use. They catch up on its next request.
 - A request already in flight finishes on the account it started with.
 - The plugin API this is built on is marked early access by Anthropic and may change between Claude Code releases.
