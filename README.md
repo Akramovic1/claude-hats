@@ -1,24 +1,53 @@
+<div align="center">
+
+<img src=".claude-plugin/icon.png" width="112" alt="claude-hats">
+
 # claude-hats
 
-**One Claude, many hats.** Use several Claude subscriptions in one Claude Code. Each account is a hat: a row above the prompt shows how much of each one's limits is used, and one press changes which hat your requests go out under. It is still one app, one `~/.claude` folder, the same skills, settings and sessions. Only the account behind each request changes.
+**One Claude, many hats.**
 
-[![A 30-second tour of claude-hats](docs/promo.gif)](docs/promo.mp4)
+Use several Claude subscriptions in one Claude Code.<br>
+See every account's limits above the message box, and switch accounts in one press.
 
-*A 30-second tour. [Watch it with sound](docs/promo.mp4).*
+[![License: MIT](https://img.shields.io/github/license/Akramovic1/claude-hats?color=D97757)](LICENSE)
+[![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-D97757)](#install)
+[![Works in the desktop app](https://img.shields.io/badge/works%20in-Claude%20desktop%20app-D97757)](#install)
+[![macOS and Linux](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-8a8a86)](#install)
+[![Last commit](https://img.shields.io/github/last-commit/Akramovic1/claude-hats?color=8a8a86)](https://github.com/Akramovic1/claude-hats/commits/main)
 
-![The usage row: closed, with an account opened, and with many accounts](docs/row.png)
+[Install](#install) · [Add an account](#add-an-account) · [Everyday use](#everyday-use) · [How it works](#how-it-works) · [Security](#security)
 
-*An illustration drawn with the plugin's own graphics.*
+<a href="docs/promo.mp4"><img src="docs/promo.gif" width="760" alt="A 30-second tour of claude-hats"></a>
+
+<sub>A 30-second tour. <a href="docs/promo.mp4">Watch it with sound</a>.</sub>
+
+</div>
+
+## Why
+
+Most tools for running more than one Claude account are built for the terminal, or swap your login and restart the app. claude-hats runs inside Claude Code itself, including the Claude desktop app. Each account is a hat: you stay in the same app and the same session, and only the account behind each request changes. Your `~/.claude` folder, skills, settings and sessions stay exactly as they are.
 
 ## What it does
 
-- **Usage for every account, always in view.** A row above the prompt shows each account's weekly usage. Press an account to open its 5-hour, weekly and Fable limits, with the time each one resets and a warning when it would run out before then.
-- **One-press switching.** `Use this account` sends your next message from that account. No logging out, no second window, no restart. The quick button on the row recommends the account with the most room left: the one whose fullest limit (5-hour, weekly or Fable) is lowest.
-- **Any number of accounts.** Add, rename and remove them right in the row. The row stays on one line however many you have.
-- **No other tool needed.** The figures come from the rate-limit headers on Claude's own responses, so nothing extra is installed and no extra request is made.
-- **A small companion.** A character on the row acts out what Claude is doing (thinking, reading, writing, running a command, looking something up, working with helpers) and gets uneasy as the account in use runs low.
+| | |
+| --- | --- |
+| **Usage, always in view** | A row above the message box shows each account's weekly usage. Press an account to open its 5-hour, weekly and Fable limits, with when each one resets and a warning when it would run out before then. |
+| **One-press switching** | `Use this account` sends your next message from that account. You don't log out, open a second window or restart. The quick button on the row recommends the account with the most room left. |
+| **Any number of accounts** | Add, rename and remove them right in the row. It stays on one line however many you have. |
+| **Nothing else to install** | The figures come from the rate-limit headers on Claude's own responses, so there is no other tool and no extra request. |
+| **A small companion** | A character on the row acts out what Claude is doing (thinking, reading, writing, running a command, looking something up) and gets uneasy as the account in use runs low. |
 
-![The character in each of its poses](docs/poses.png)
+<div align="center">
+
+<img src="docs/row.png" width="760" alt="The usage row: closed, with an account opened, and with many accounts">
+
+<sub>The row closed, with an account opened, and with many accounts. An illustration drawn with the plugin's own graphics.</sub>
+
+<br><br>
+
+<img src="docs/poses.png" width="760" alt="The character in each of its poses">
+
+</div>
 
 ## Install
 
@@ -38,7 +67,7 @@ In the desktop app, where `/plugin` does not run: click **+** next to the prompt
 
 The plugin inside this repository is named `hats`, because Claude Code keeps plugin names that start with `claude-` for Anthropic's own.
 
-It is written to run on macOS, Linux and Windows, and has been tested on Linux so far. Adding an account uses a small bash script, so on Windows run that step in Git Bash or WSL.
+It runs on macOS and Linux. On Windows it is untested, and adding an account uses a small bash script, so run that step in Git Bash or WSL.
 
 Needs Claude Code 2.1.325 or newer.
 
