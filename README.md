@@ -34,7 +34,7 @@ Most tools for running more than one Claude account are built for the terminal, 
 | **Usage, always in view** | A row above the message box shows each account's weekly usage. Press an account to open its 5-hour, weekly and Fable limits, with when each one resets and a warning when it would run out before then. |
 | **One-press switching** | `Use this account` sends your next message from that account. You don't log out, open a second window or restart. The quick button on the row recommends the account with the most room left. |
 | **Any number of accounts** | Add, rename and remove them right in the row. It stays on one line however many you have. |
-| **Nothing else to install** | The figures come from the rate-limit headers on Claude's own responses, so there is no other tool and no extra request. |
+| **Nothing else to install** | The figures come from the rate-limit headers on Claude's own responses, plus Anthropic's own usage report for the account the app is signed in to. There is no other tool to set up. |
 | **A small companion** | A character on the row acts out what Claude is doing (thinking, reading, writing, running a command, looking something up) and gets uneasy as the account in use runs low. |
 
 <div align="center">
@@ -107,7 +107,7 @@ The switch applies to every session of the app, from the next message on. If an 
 
 Every request Claude Code sends to the model passes through this plugin's `http.fetch` hook. While another account is chosen, the hook replaces the request's `Authorization` header with that account's token. Only requests to the Messages API on `https://api.anthropic.com` are touched: if Claude Code is pointed at another base URL (a gateway, a proxy, a cloud provider), nothing is rerouted, so a token never travels to another host. Sign-in, synced sessions and connectors stay on the app's own account.
 
-Each response carries headers saying how full the subscription's limits are (`anthropic-ratelimit-unified-5h-utilization`, `-7d-`, and `-7d_oi-` for Fable). The plugin reads them and keeps the last reading per account. An account you are not using shows its last reading, back at 0% once its reset time has passed. Fable's figure appears after the first Fable request on that account.
+Each response carries headers saying how full the subscription's limits are (`anthropic-ratelimit-unified-5h-utilization`, `-7d-`, and `-7d_oi-` for Fable). The plugin reads them and keeps the last reading per account. While another account is in use, the plugin asks Anthropic for the signed-in account's usage every few minutes (the same figures as the app's usage screen; the app holds the credential, the plugin never sees it), so that row keeps up even when the account is spent on another device. An added account you are not using shows its last reading, back at 0% once its reset time has passed: its token is not allowed to read a usage report. Fable's figure appears after the first Fable request on that account.
 
 Everything is kept in `~/.claude/claude-hats/`:
 
@@ -128,7 +128,7 @@ Everything is kept in `~/.claude/claude-hats/`:
 ## Limits
 
 - The row appears once a session has started, after your first message. The app's start screen has no session yet.
-- An idle account's figures are from its last use. They catch up on its next request.
+- An added account's figures are from its last use while it is idle. They catch up on its next request. The signed-in account's figures stay current.
 - A request already in flight finishes on the account it started with.
 - The plugin API this is built on is marked early access by Anthropic and may change between Claude Code releases.
 - In a terminal session the row has no drawings: the character and the meters fall back to text.

@@ -14,6 +14,7 @@ import {
   headerLimits,
   isAccount,
   mergeLimits,
+  reportLimits,
   nameOf,
   planRow,
   runsOutEarly,
@@ -54,6 +55,8 @@ const TITLE = 'Accounts'
 const REFRESH_MS = 30_000
 // While an account waits for its token, its file is looked for this often.
 const PENDING_MS = 2_500
+// How often the app's own account is asked for its usage.
+const OWN_USAGE_MS = 180_000
 const OWN_LABEL = 'Main account'
 // `renaming` says which small edit is open, one at a time: an account's id
 // while its name is a field, REMOVING + its id while Remove waits for a second
@@ -202,7 +205,13 @@ async function useAccount($: EngineInterface, id: string): Promise<void> {
 const lastFullness = new Map<string, number>()
 
 /** Folds a fresh reading of one account into the shared file and this session's state. */
-async function recordLimits($: EngineInterface, id: string, fresh: Limit[], org: string | undefined): Promise<void> {
+async function recordLimits(
+  $: EngineInterface,
+  id: string,
+  fresh: Limit[],
+  org: string | undefined,
+  isWhole = false,
+): Promise<void> {
   if (!isAccountId(id) || fresh.length === 0) return
 
   const [list, config, t, envId, envEmail] = await Promise.all([
@@ -218,7 +227,8 @@ async function recordLimits($: EngineInterface, id: string, fresh: Limit[], org:
     label: config.accounts[id]?.label ?? old?.label ?? OWN_LABEL,
     email: id === envId ? (envEmail ?? old?.email) : old?.email,
     org: org ?? old?.org,
-    limits: mergeLimits(old?.limits ?? [], fresh),
+    // A whole report lists every window the account has; a response's headers only some.
+    limits: mergeLimits(isWhole ? (old?.limits ?? []).filter(o => fresh.some(f => f.kind === o.kind)) : (old?.limits ?? []), fresh, t),
     updatedAt: t,
   }
   // Written when something moved, or once a minute so "updated ..." stays honest.
@@ -271,8 +281,36 @@ async function afterResponse(
       cachedRoute = undefined
     }
     await recordLimits($, id, headerLimits(headers), org)
+    // While another account answers, the app's own is asked directly (at most once per interval).
+    if (route.token) void readOwnUsage($)
   } catch {
     // a reading missed: the next response brings another
+  }
+}
+
+const USAGE_URL = 'https://api.anthropic.com/api/oauth/usage'
+
+/**
+ * Asks Anthropic for the usage of the account this app is signed in to, the
+ * figures the app's own usage screen shows. While another account is in use
+ * no response speaks for this one, and it may be spent elsewhere (another
+ * device, claude.ai), so without this its row would stand still. The engine
+ * holds the credential: this code never sees it. Skipped while a reading
+ * newer than the interval is on file, so many sessions make one request.
+ */
+async function readOwnUsage($: EngineInterface): Promise<void> {
+  try {
+    const [own, t] = await Promise.all([ownAccount($), $.clock.now()])
+    if (!own || !isAccountId(own)) return
+    const last = (await loadAccounts($)).find(a => a.id === own)?.updatedAt ?? 0
+    if (t - last < OWN_USAGE_MS - 5_000) return
+    const auth = await $.session.authorize()
+    if (!auth || auth.kind !== 'bearer') return
+    const res = await $.http.fetch(USAGE_URL, { auth: auth.handle, headers: { 'anthropic-beta': 'oauth-2025-04-20' } })
+    if (!res.ok) return
+    await recordLimits($, own, reportLimits(JSON.parse(res.text)), undefined, true)
+  } catch {
+    // no reading this time: the row keeps the last one
   }
 }
 
@@ -450,6 +488,8 @@ export const register: Register = on => {
     await refresh($)
     $.clock.every(REFRESH_MS, () => void refresh($))
     $.clock.every(PENDING_MS, () => void watchPending($))
+    void readOwnUsage($)
+    $.clock.every(OWN_USAGE_MS, () => void readOwnUsage($))
 
     return started
   })

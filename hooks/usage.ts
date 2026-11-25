@@ -120,12 +120,70 @@ export function settle(fresh: Limit, old: Limit | undefined): Limit {
   return isSameWindow && old.percentUsed > fresh.percentUsed ? { ...fresh, percentUsed: old.percentUsed } : fresh
 }
 
-/** Fresh readings folded into the ones already held: settled per window, the rest kept. */
-export function mergeLimits(old: Limit[], fresh: Limit[]): Limit[] {
+// Windows every response reports while the plan has them. One of these that a
+// fresh reading leaves out, and whose reset has passed, is a window the plan
+// no longer has (not one at 0%), so it is let go.
+const ALWAYS_REPORTED = new Set(['five_hour', 'seven_day'])
+
+/**
+ * Fresh readings folded into the ones already held: settled per window, the
+ * rest kept, except a window that has ended and is no longer reported.
+ */
+export function mergeLimits(old: Limit[], fresh: Limit[], t = 0): Limit[] {
+  const isGone = (o: Limit): boolean =>
+    ALWAYS_REPORTED.has(o.kind) && o.resetsAt !== undefined && Date.parse(o.resetsAt) <= t
   return sortedLimits([
     ...fresh.map(f => settle(f, old.find(o => o.kind === f.kind))),
-    ...old.filter(o => !fresh.some(f => f.kind === o.kind)),
+    ...old.filter(o => !fresh.some(f => f.kind === o.kind) && !isGone(o)),
   ])
+}
+
+// The account's own usage report (`/api/oauth/usage`). The plain windows are
+// keys holding `{ utilization (0 to 100), resets_at }`, null where the plan
+// has none. Per-model weekly windows are in `limits`, as
+// `{ kind: "weekly_scoped", percent, resets_at, scope: { model: { display_name } } }`.
+const REPORT_KEYS = ['five_hour', 'seven_day', 'seven_day_opus', 'seven_day_sonnet']
+const SCOPED_KINDS: Record<string, string> = {
+  fable: 'seven_day_fable',
+  opus: 'seven_day_opus',
+  sonnet: 'seven_day_sonnet',
+}
+
+function reportLimit(kind: string, percent: unknown, resetsAt: unknown): Limit | undefined {
+  if (typeof percent !== 'number' || !Number.isFinite(percent)) return undefined
+  const reset = typeof resetsAt === 'string' ? Date.parse(resetsAt) : NaN
+  return {
+    kind,
+    percentUsed: Math.round(percent * 10) / 10,
+    resetsAt: Number.isNaN(reset) ? undefined : new Date(reset).toISOString(),
+  }
+}
+
+/** The windows in an account's usage report; none where the body is not one. */
+export function reportLimits(body: unknown): Limit[] {
+  if (typeof body !== 'object' || body === null) return []
+  const report = body as Record<string, unknown>
+  const out: Limit[] = []
+  const add = (l: Limit | undefined): void => {
+    if (l && !out.some(o => o.kind === l.kind)) out.push(l)
+  }
+  for (const key of REPORT_KEYS) {
+    const v = report[key] as { utilization?: unknown; resets_at?: unknown } | null | undefined
+    if (typeof v === 'object' && v !== null) add(reportLimit(key, v.utilization, v.resets_at))
+  }
+  for (const item of Array.isArray(report.limits) ? report.limits : []) {
+    const l = item as {
+      kind?: unknown
+      percent?: unknown
+      resets_at?: unknown
+      scope?: { model?: { display_name?: unknown } | null } | null
+    } | null
+    if (typeof l !== 'object' || l === null || l.kind !== 'weekly_scoped') continue
+    const model = l.scope?.model?.display_name
+    const kind = typeof model === 'string' ? SCOPED_KINDS[model.toLowerCase()] : undefined
+    if (kind) add(reportLimit(kind, l.percent, l.resets_at))
+  }
+  return sortedLimits(out)
 }
 
 // Every response from the Messages API says how full the subscription's

@@ -1,6 +1,6 @@
 {
   "name": "hats",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "One Claude, many hats: use several Claude subscriptions in one Claude Code. See every account's 5-hour, weekly and Fable usage above the prompt, and switch which account your requests go out as with one press",
   "author": {
     "name": "Akramovic1",

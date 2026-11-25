@@ -2,7 +2,7 @@ import { expect, test } from 'claude-code/testing'
 
 import { activityOf, barSvg, miniCharacterSvg, moodOf, sceneSvg } from '../hooks/drawings'
 import { cleanName, isAccountId, isInference, newAccountId, withAccount } from '../hooks/routing'
-import { headerLimits, mergeLimits, planRow, runsOutEarly, settle, shortLabel, sortAccounts } from '../hooks/usage'
+import { headerLimits, mergeLimits, reportLimits, planRow, runsOutEarly, settle, shortLabel, sortAccounts } from '../hooks/usage'
 
 const NOW = Date.parse('2026-11-24T12:00:00Z')
 
@@ -169,4 +169,39 @@ test('the row stays on one line however many accounts there are', async () => {
   // A long name is cut, never the layout.
   expect(shortLabel('Personal subscription for side projects')).toBe('Personal subs…')
   expect(shortLabel('Work')).toBe('Work')
+})
+
+test('a window that ended and is no longer reported is let go; an ended Fable window is kept', () => {
+  const t = Date.parse('2026-11-25T12:00:00Z')
+  const old = [
+    { kind: 'five_hour', percentUsed: 25, resetsAt: '2026-11-25T06:20:00.000Z' },
+    { kind: 'seven_day_fable', percentUsed: 50, resetsAt: '2026-11-25T06:20:00.000Z' },
+  ]
+  const fresh = [{ kind: 'seven_day', percentUsed: 36, resetsAt: '2026-11-26T10:00:00.000Z' }]
+  expect(mergeLimits(old, fresh, t).map(l => l.kind)).toEqual(['seven_day', 'seven_day_fable'])
+  // Still running: kept even though this response did not mention it.
+  expect(mergeLimits(old, fresh, Date.parse('2026-11-25T05:00:00Z')).map(l => l.kind)).toContain('five_hour')
+})
+
+test("an account's usage report gives its weekly and per-model windows, and nothing else", () => {
+  const limits = reportLimits({
+    five_hour: null,
+    seven_day: { utilization: 19.0, resets_at: '2026-11-29T21:59:59.751676+00:00' },
+    extra_usage: { utilization: 0, is_enabled: false },
+    limits: [
+      { kind: 'weekly_all', percent: 19, resets_at: '2026-11-29T21:59:59.779222+00:00', scope: null },
+      {
+        kind: 'weekly_scoped',
+        percent: 14,
+        resets_at: '2026-11-29T21:59:59.779406+00:00',
+        scope: { model: { id: null, display_name: 'Fable' }, surface: null },
+      },
+    ],
+  })
+  expect(limits.map(l => [l.kind, l.percentUsed])).toEqual([
+    ['seven_day', 19],
+    ['seven_day_fable', 14],
+  ])
+  expect(limits[0]?.resetsAt).toBe('2026-11-29T21:59:59.751Z')
+  expect(reportLimits('nope')).toEqual([])
 })
